@@ -35,6 +35,15 @@ export const signup = async (req, res) => {
         res.cookie("token", token, { httpOnly: true, maxAge: 24 * 60 * 60 * 1000, sameSite: "strict", secure: process.env.NODE_ENV === "production" })
 
         res.status(201).json({ message: "User created successfully" })
+
+
+        const profileUrl = process.env.CLIENT_URL + "/profile/" + user.username
+
+        try {
+            await sendWelcomeEmail(user.email, user.name, profileUrl)
+        } catch (emailError) {
+            console.error("Error sending welcome message", emailError)
+        }
     } catch (error) {
         console.log(error)
         res.status(500).json({ message: "Something went wrong" })
