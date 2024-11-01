@@ -68,7 +68,7 @@ export const login = async (req, res) => {
         }
 
         const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: "1d" })
-        
+
         res.cookie("token", token, { httpOnly: true, maxAge: 24 * 60 * 60 * 1000, sameSite: "strict", secure: process.env.NODE_ENV === "production" })
         res.status(200).json({ message: "Logged in successfully" })
     } catch (error) {
@@ -80,6 +80,16 @@ export const login = async (req, res) => {
 export const logout = (req, res) => {
     res.clearCookie("token")
     res.json({ message: "Logged out successfully" })
+}
+
+export const getCurrentUser = async (req, res) => {
+    try {
+        res.json( req.user )
+    } catch (error) {
+        console.log("error getting current user", error)
+        res.status(500).json({ message: "Something went wrong" })
+
+    }
 }
 
 export default {
