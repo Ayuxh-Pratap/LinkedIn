@@ -1,6 +1,7 @@
 import User from "../models/user.model.js"
-import bycrypt from "bcryptjs"
+import bcrypt from "bcryptjs"
 import jwt from "jsonwebtoken"
+import { sendWelcomeEmail } from "../emails/emailHandlers.js"
 
 export const signup = async (req, res) => {
     try {
@@ -18,8 +19,8 @@ export const signup = async (req, res) => {
             return res.status(400).json({ message: "Password must be at least 6 characters long" })
         }
 
-        const salt = await bycrypt.genSalt(10)
-        const hashedPassword = await bycrypt.hash(password, salt)
+        const salt = await bcrypt.genSalt(10)
+        const hashedPassword = await bcrypt.hash(password, salt)
 
         const user = new User({
             name,
@@ -50,12 +51,35 @@ export const signup = async (req, res) => {
     }
 }
 
-export const login = (req, res) => {
-    res.send("login")
+export const login = async (req, res) => {
+    try {
+        const { username, password } = req.body
+
+        const user = await User.findOne({ username })
+
+        if (!user) {
+            return res.status(400).json({ message: "Invalid username or password" })
+        }
+
+        const isMatch = await bcrypt.compare(password, user.password)
+
+        if (!isMatch) {
+            return res.status(400).json({ message: "Invalid username or password" })
+        }
+
+        const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: "1d" })
+        
+        res.cookie("token", token, { httpOnly: true, maxAge: 24 * 60 * 60 * 1000, sameSite: "strict", secure: process.env.NODE_ENV === "production" })
+        res.status(200).json({ message: "Logged in successfully" })
+    } catch (error) {
+        console.error("error logging in", error)
+        res.status(500).json({ message: "Something went wrong" })
+    }
 }
 
 export const logout = (req, res) => {
-    res.send("logout")
+    res.clearCookie("token")
+    res.json({ message: "Logged out successfully" })
 }
 
 export default {
